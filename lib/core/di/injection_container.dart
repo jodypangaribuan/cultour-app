@@ -15,6 +15,14 @@ import '../../features/camera/domain/usecases/detect_landmark.dart';
 import '../../features/camera/domain/usecases/collect_digital_stamp.dart';
 import '../../features/camera/presentation/bloc/camera_bloc.dart';
 
+import '../../features/language/data/services/google_translate_service.dart';
+import '../../features/language/data/repositories/translation_repository_impl.dart';
+import '../../features/language/domain/repositories/translation_repository.dart';
+import '../../features/language/domain/usecases/translate_text.dart';
+import '../../features/language/domain/usecases/detect_language.dart';
+import '../../features/language/presentation/bloc/translation_bloc.dart';
+import '../config/api_config.dart';
+
 final sl = GetIt.instance;
 
 Future<void> init() async {
@@ -31,12 +39,24 @@ Future<void> init() async {
     ),
   );
 
+  // Features - Language/Translation
+  sl.registerFactory(
+    () => TranslationBloc(
+      translateText: sl(),
+      detectLanguage: sl(),
+    ),
+  );
+
   // Use cases - Home
   sl.registerLazySingleton(() => GetFeaturedAttractions(sl()));
 
   // Use cases - Camera
   sl.registerLazySingleton(() => DetectLandmark(sl()));
   sl.registerLazySingleton(() => CollectDigitalStamp(sl()));
+
+  // Use cases - Language/Translation
+  sl.registerLazySingleton(() => TranslateText(sl()));
+  sl.registerLazySingleton(() => DetectLanguage(sl()));
 
   // Repositories - Home
   sl.registerLazySingleton<HomeRepository>(
@@ -51,6 +71,11 @@ Future<void> init() async {
     ),
   );
 
+  // Repositories - Language/Translation
+  sl.registerLazySingleton<TranslationRepository>(
+    () => TranslationRepositoryImpl(translateService: sl()),
+  );
+
   // Data sources - Home
   sl.registerLazySingleton<HomeRemoteDataSource>(
     () => HomeRemoteDataSourceImpl(),
@@ -63,6 +88,11 @@ Future<void> init() async {
 
   // Services
   sl.registerLazySingleton(() => AIDetectionService());
+  
+  // Google Translate Service
+  sl.registerLazySingleton(() => GoogleTranslateService(
+    apiKey: ApiConfig.googleTranslateApiKey,
+  ));
 
   // External
   sl.registerLazySingleton(() => http.Client());

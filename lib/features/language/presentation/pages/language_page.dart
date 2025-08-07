@@ -1,15 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/constants/colors.dart';
 import '../../../../core/constants/dimensions.dart';
+import '../../../../core/di/injection_container.dart';
 import '../widgets/language_feature_card.dart';
 import '../widgets/live_translation_widget.dart';
+import '../bloc/translation_bloc.dart';
 
 class LanguagePage extends StatelessWidget {
   const LanguagePage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return BlocProvider(
+      create: (context) => sl<TranslationBloc>(),
+      child: Scaffold(
       backgroundColor: AppColors.background,
       body: Column(
         children: [
@@ -117,6 +122,7 @@ class LanguagePage extends StatelessWidget {
             ),
           ),
         ],
+      ),
       ),
     );
   }
