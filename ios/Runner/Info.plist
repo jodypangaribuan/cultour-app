@@ -45,5 +45,11 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>Aplikasi ini memerlukan akses kamera untuk mendeteksi landmark dan tempat wisata</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Aplikasi ini memerlukan akses lokasi untuk menampilkan tempat wisata terdekat</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Aplikasi ini memerlukan akses galeri untuk menyimpan foto landmark</string>
 </dict>
 </plist>
