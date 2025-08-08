@@ -50,15 +50,15 @@ dependencies:
   flutter_svg: ^2.0.9
   
   # Camera & AI
-  camera: ^0.10.5+9
-  google_ml_kit: ^0.16.3
+  camera: ^0.11.2
+  google_ml_kit: ^0.20.0
   image: ^4.1.7
   path_provider: ^2.1.1
-  permission_handler: ^11.1.0
+  permission_handler: ^12.0.1
   
   # Location & Maps
-  geolocator: ^10.1.0
-  google_maps_flutter: ^2.5.0
+  geolocator: ^14.0.2
+  google_maps_flutter: ^2.6.0
   
   # Translation
   googleapis_auth: ^1.4.1

@@ -2,7 +2,7 @@ class ApiConfig {
   // Google Cloud Translate API Configuration
   static const String googleTranslateApiKey = String.fromEnvironment(
     'GOOGLE_TRANSLATE_API_KEY',
-    defaultValue: '<isi api disini>', // Replace with your actual API key
+    defaultValue: 'AIzaSyBpB-I4QZ2tNWltIzGQsRVEVbJa0EyKO6A', // Replace with your actual API key
   );
 
   // You can also store other API configurations here
