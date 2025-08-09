@@ -39,80 +39,70 @@ class _MapsPageState extends State<MapsPage> {
   }
 
   Future<void> _determinePosition() async {
-  // Set default sementara biar Map bisa render
-  setState(() {
-    _currentPosition = _defaultJakarta;
-  });
+    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      await Geolocator.openLocationSettings();
+      return;
+    }
 
-  bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-  if (!serviceEnabled) {
-    await Geolocator.openLocationSettings();
-    return;
+    LocationPermission permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+    }
+
+    if (permission == LocationPermission.denied || permission == LocationPermission.deniedForever) {
+      _setDefaultLocation();
+      return;
+    }
+
+    try {
+      Position position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+      );
+      LatLng newPosition = LatLng(position.latitude, position.longitude);
+
+      setState(() {
+        _currentPosition = newPosition;
+        _updateCurrentLocationMarker();
+      });
+
+      if (_isMapReady && _mapController != null) {
+        _mapController!.animateCamera(CameraUpdate.newLatLng(newPosition));
+      }
+    } catch (e) {
+      print('Error getting position: $e');
+      _setDefaultLocation();
+    }
   }
 
-  LocationPermission permission = await Geolocator.checkPermission();
-  if (permission == LocationPermission.denied) {
-    permission = await Geolocator.requestPermission();
-  }
-
-  if (permission == LocationPermission.denied || permission == LocationPermission.deniedForever) {
-    // Pakai default lokasi Jakarta
-    _setDefaultLocation();
-    return;
-  }
-
-  try {
-    Position position = await Geolocator.getCurrentPosition(
-      desiredAccuracy: LocationAccuracy.high,
-    );
-    LatLng newPosition = LatLng(position.latitude, position.longitude);
-
+  void _setDefaultLocation() {
     setState(() {
-      _currentPosition = newPosition;
-      _markers.clear();
+      _currentPosition = _defaultJakarta;
+      _updateCurrentLocationMarker();
+    });
+  }
+
+  void _updateCurrentLocationMarker() {
+    _markers.removeWhere((m) => m.markerId.value == 'currentLocation');
+    if (_currentPosition != null) {
       _markers.add(
         Marker(
           markerId: const MarkerId('currentLocation'),
-          position: newPosition,
+          position: _currentPosition!,
           infoWindow: const InfoWindow(title: 'Lokasi Anda'),
         ),
       );
-    });
-
-    if (_isMapReady && _mapController != null) {
-      _mapController!.animateCamera(CameraUpdate.newLatLng(newPosition));
     }
-  } catch (e) {
-    print('Error getting position: $e');
-    _setDefaultLocation();
   }
-}
-
-void _setDefaultLocation() {
-  setState(() {
-    _currentPosition = _defaultJakarta;
-    _markers.clear();
-    _markers.add(
-      Marker(
-        markerId: const MarkerId('defaultLocation'),
-        position: _defaultJakarta,
-        infoWindow: const InfoWindow(title: 'Default Jakarta'),
-      ),
-    );
-  });
-}
 
   Future<void> _searchLocation(String query) async {
     if (query.isEmpty) return;
     try {
-      print('Mencari lokasi: $query');
       List<Location> locations = await locationFromAddress(query);
       if (locations.isNotEmpty) {
         final LatLng searchedLatLng = LatLng(locations.first.latitude, locations.first.longitude);
-        print('Lokasi ditemukan: $searchedLatLng');
         setState(() {
           _searchedPosition = searchedLatLng;
-          // Marker lokasi awal tetap, marker pencarian ditambah/ganti
           _markers.removeWhere((m) => m.markerId.value == 'searchedLocation');
           _markers.add(
             Marker(
@@ -134,7 +124,6 @@ void _setDefaultLocation() {
           ),
         );
       } else {
-        print('Lokasi tidak ditemukan: $query');
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: const Text('Lokasi tidak ditemukan!'),
@@ -155,52 +144,70 @@ void _setDefaultLocation() {
 
   @override
   Widget build(BuildContext context) {
-    // Kamera default ke lokasi awal, jika ada hasil pencarian pindah ke sana
     final LatLng mapCenter = _searchedPosition ?? _currentPosition ?? _defaultJakarta;
     return Scaffold(
       body: Stack(
         children: [
-          Builder(
-            builder: (context) {
-              try {
-                return GoogleMap(
-                  key: const ValueKey('map'),
-                  initialCameraPosition: CameraPosition(
-                    target: mapCenter,
-                    zoom: 15,
-                  ),
-                  onMapCreated: (controller) {
-                    _mapController = controller;
-                    setState(() {
-                      _isMapReady = true;
-                      _mapError = false;
-                      _mapErrorMsg = '';
-                    });
-                    // Jika hasil pencarian sudah ada, langsung pindah kamera ke sana
-                    if (_searchedPosition != null) {
-                      Future.delayed(const Duration(milliseconds: 300), () {
-                        _mapController?.animateCamera(
-                          CameraUpdate.newLatLngZoom(_searchedPosition!, 16),
-                        );
-                      });
-                    }
-                  },
-                  myLocationEnabled: true,
-                  myLocationButtonEnabled: false,
-                  zoomControlsEnabled: false,
-                  markers: _markers,
-                );
-              } catch (e) {
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  setState(() {
-                    _mapError = true;
-                    _mapErrorMsg = 'Gagal memuat Google Maps: $e\nKemungkinan API Key salah, permission belum benar, atau device tidak support.';
-                  });
+          // GoogleMap selalu dirender, gunakan posisi default jika belum ada lokasi
+          GoogleMap(
+            key: const ValueKey('map'),
+            initialCameraPosition: CameraPosition(
+              target: mapCenter,
+              zoom: 15,
+            ),
+            onMapCreated: (controller) {
+              _mapController = controller;
+              if (!_isMapReady) {
+                setState(() {
+                  _isMapReady = true;
+                  _mapError = false;
+                  _mapErrorMsg = '';
                 });
-                return const SizedBox.shrink();
+              }
+              // Jika hasil pencarian sudah ada, langsung pindah kamera ke sana
+              if (_searchedPosition != null) {
+                Future.delayed(const Duration(milliseconds: 300), () {
+                  _mapController?.animateCamera(
+                    CameraUpdate.newLatLngZoom(_searchedPosition!, 16),
+                  );
+                });
               }
             },
+            myLocationEnabled: true,
+            myLocationButtonEnabled: false,
+            zoomControlsEnabled: false,
+            markers: _markers,
+            // Tambahkan ini untuk debug jika map tidak muncul
+            onCameraMoveStarted: () {
+              print('Camera move started');
+            },
+            onTap: (pos) {
+              print('Map tapped at: $pos');
+            },
           ),
+          // Overlay spinner hanya jika _currentPosition masih null (loading lokasi)
+          if (_currentPosition == null)
+            Positioned.fill(
+              child: Container(
+                color: Colors.white,
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      CircularProgressIndicator(
+                        color: AppColors.primary,
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Mengambil lokasi...',
+                        style: TextStyle(color: AppColors.primary),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          // Overlay error jika map gagal
           if (_mapError)
             Positioned.fill(
               child: Container(
@@ -217,27 +224,6 @@ void _setDefaultLocation() {
                             : 'Gagal memuat Google Maps.\nCek API Key dan permission lokasi.',
                         style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
                         textAlign: TextAlign.center,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          if (_currentPosition == null && !_mapError)
-            Positioned.fill(
-              child: Container(
-                color: Colors.white.withOpacity(0.7),
-                child: Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      CircularProgressIndicator(
-                        color: AppColors.primary,
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'Mengambil lokasi...',
-                        style: TextStyle(color: AppColors.primary),
                       ),
                     ],
                   ),
@@ -397,4 +383,29 @@ void _setDefaultLocation() {
     );
   }
 }
+// Tidak perlu perubahan kode untuk error ini.
+  Widget _circleButton(IconData icon, VoidCallback onPressed) {
+    return Container(
+      width: 40,
+      height: 40,
+      margin: const EdgeInsets.only(bottom: 4),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(AppDimensions.radiusL),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: IconButton(
+        icon: Icon(icon, size: 20),
+        padding: EdgeInsets.zero,
+        onPressed: onPressed,
+      ),
+    );
+  }
+
 // Tidak perlu perubahan kode untuk error ini.
