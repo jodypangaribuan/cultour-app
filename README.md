@@ -84,3 +84,5 @@ Silakan buat issue atau pull request untuk berkontribusi pada pengembangan aplik
 ## 📄 Lisensi
 
 Project ini dibuat untuk keperluan pengembangan aplikasi wisata Indonesia.
+
+Catatan: Komit uji untuk verifikasi alur commit dan push.
