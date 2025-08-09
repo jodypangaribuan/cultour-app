@@ -156,20 +156,27 @@ class _MapsPageState extends State<MapsPage> {
               zoom: 15,
             ),
             onMapCreated: (controller) {
-              _mapController = controller;
-              if (!_isMapReady) {
+              try {
+                _mapController = controller;
+                if (!_isMapReady) {
+                  setState(() {
+                    _isMapReady = true;
+                    _mapError = false;
+                    _mapErrorMsg = '';
+                  });
+                }
+                // Jika hasil pencarian sudah ada, langsung pindah kamera ke sana
+                if (_searchedPosition != null) {
+                  Future.delayed(const Duration(milliseconds: 300), () {
+                    _mapController?.animateCamera(
+                      CameraUpdate.newLatLngZoom(_searchedPosition!, 16),
+                    );
+                  });
+                }
+              } catch (e) {
                 setState(() {
-                  _isMapReady = true;
-                  _mapError = false;
-                  _mapErrorMsg = '';
-                });
-              }
-              // Jika hasil pencarian sudah ada, langsung pindah kamera ke sana
-              if (_searchedPosition != null) {
-                Future.delayed(const Duration(milliseconds: 300), () {
-                  _mapController?.animateCamera(
-                    CameraUpdate.newLatLngZoom(_searchedPosition!, 16),
-                  );
+                  _mapError = true;
+                  _mapErrorMsg = 'Gagal memuat Google Maps: ${e.toString()}';
                 });
               }
             },
@@ -383,29 +390,4 @@ class _MapsPageState extends State<MapsPage> {
     );
   }
 }
-// Tidak perlu perubahan kode untuk error ini.
-  Widget _circleButton(IconData icon, VoidCallback onPressed) {
-    return Container(
-      width: 40,
-      height: 40,
-      margin: const EdgeInsets.only(bottom: 4),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(AppDimensions.radiusL),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: IconButton(
-        icon: Icon(icon, size: 20),
-        padding: EdgeInsets.zero,
-        onPressed: onPressed,
-      ),
-    );
-  }
 
-// Tidak perlu perubahan kode untuk error ini.

@@ -51,5 +51,9 @@
 	<string>Aplikasi ini memerlukan akses lokasi untuk menampilkan tempat wisata terdekat</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Aplikasi ini memerlukan akses galeri untuk menyimpan foto landmark</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Aplikasi ini memerlukan akses lokasi untuk menampilkan maps dan tempat wisata terdekat</string>
+	<key>NSLocationAlwaysUsageDescription</key>
+	<string>Aplikasi ini memerlukan akses lokasi untuk menampilkan maps dan tempat wisata terdekat</string>
 </dict>
 </plist>
