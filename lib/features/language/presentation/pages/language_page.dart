@@ -3,7 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/constants/colors.dart';
 import '../../../../core/constants/dimensions.dart';
 import '../../../../core/di/injection_container.dart';
-import '../widgets/language_feature_card.dart';
+
 import '../widgets/live_translation_widget.dart';
 import '../bloc/translation_bloc.dart';
 
@@ -33,17 +33,17 @@ class LanguagePage extends StatelessWidget {
             child: SafeArea(
               bottom: false,
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(
-                  AppDimensions.paddingM,
-                  AppDimensions.paddingM,
-                  AppDimensions.paddingM,
-                  AppDimensions.paddingS,
+                padding: EdgeInsets.fromLTRB(
+                  AppDimensions.getResponsivePadding(context, ResponsivePaddingSize.m),
+                  AppDimensions.getResponsivePadding(context, ResponsivePaddingSize.m),
+                  AppDimensions.getResponsivePadding(context, ResponsivePaddingSize.m),
+                  AppDimensions.getResponsivePadding(context, ResponsivePaddingSize.s),
                 ),
                 child: Center(
                   child: Text(
                     'Language Tutor',
                     style: TextStyle(
-                      fontSize: AppDimensions.fontXL,
+                      fontSize: AppDimensions.getResponsiveFontSize(context, ResponsiveFontSize.xl),
                       fontWeight: FontWeight.bold,
                       color: AppColors.textPrimary,
                     ),
@@ -55,68 +55,17 @@ class LanguagePage extends StatelessWidget {
           // Content
           Expanded(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.all(AppDimensions.paddingM),
+              padding: EdgeInsets.all(
+                AppDimensions.getResponsivePadding(context, ResponsivePaddingSize.m),
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Live Translation Widget - Clean layout
-                  const SizedBox(height: AppDimensions.paddingM),
+                  SizedBox(height: AppDimensions.getResponsivePadding(context, ResponsivePaddingSize.m)),
                   const LiveTranslationWidget(),
-                  const SizedBox(height: AppDimensions.paddingXL),
-                  // Learn Batak Language Section - Now at the bottom
-                  const Text(
-                    'Learn Batak Language',
-                    style: TextStyle(
-                      fontSize: AppDimensions.fontXXL,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-                  const SizedBox(height: AppDimensions.paddingS),
-                  const Text(
-                    'Engage in interactive lessons, practice with our AI chat, and use the live translator to master the Batak language.',
-                    style: TextStyle(
-                      fontSize: AppDimensions.fontL,
-                      color: AppColors.textSecondary,
-                      height: 1.5,
-                    ),
-                  ),
-                  const SizedBox(height: AppDimensions.paddingL),
-                  // Feature Cards Grid
-                  Row(
-                    children: [
-                      Expanded(
-                        child: LanguageFeatureCard(
-                          icon: Icons.menu_book,
-                          title: 'Interactive Lessons',
-                          onTap: () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Interactive Lessons coming soon!'),
-                                backgroundColor: AppColors.primary,
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                      const SizedBox(width: AppDimensions.paddingM),
-                      Expanded(
-                        child: LanguageFeatureCard(
-                          icon: Icons.chat_bubble_outline,
-                          title: 'AI Chat Practice',
-                          onTap: () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('AI Chat Practice coming soon!'),
-                                backgroundColor: AppColors.primary,
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: AppDimensions.paddingXL),
+                  SizedBox(height: AppDimensions.getResponsivePadding(context, ResponsivePaddingSize.xl)),
+
                 ],
               ),
             ),

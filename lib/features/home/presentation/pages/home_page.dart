@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/constants/colors.dart';
 import '../../../../core/constants/dimensions.dart';
 import '../../../../core/constants/strings.dart';
+import '../../../../core/utils/responsive_utils.dart';
 import '../../../../shared/widgets/attraction_card.dart';
 import '../bloc/home_bloc.dart';
 
@@ -41,14 +42,19 @@ class _HomePageState extends State<HomePage> {
 
   Widget _buildHeader() {
     return Padding(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppDimensions.paddingM,
-        vertical: AppDimensions.paddingS,
+      padding: EdgeInsets.symmetric(
+        horizontal: AppDimensions.getResponsivePadding(context, ResponsivePaddingSize.m),
+        vertical: AppDimensions.getResponsivePadding(context, ResponsivePaddingSize.s),
       ),
       child: Center(
         child: Image.asset(
           'assets/images/cultour-logo.png',
-          height: 100,
+          height: ResponsiveUtils.getResponsiveHeight(
+            context,
+            mobile: 100,
+            tablet: 120,
+            desktop: 140,
+          ),
           fit: BoxFit.contain,
         ),
       ),
@@ -57,9 +63,9 @@ class _HomePageState extends State<HomePage> {
 
   Widget _buildWelcomeSection() {
     return Padding(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppDimensions.paddingM,
-        vertical: AppDimensions.paddingM,
+      padding: EdgeInsets.symmetric(
+        horizontal: AppDimensions.getResponsivePadding(context, ResponsivePaddingSize.m),
+        vertical: AppDimensions.getResponsivePadding(context, ResponsivePaddingSize.m),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -69,13 +75,15 @@ class _HomePageState extends State<HomePage> {
             style: Theme.of(context).textTheme.displayMedium?.copyWith(
                   fontWeight: FontWeight.bold,
                   color: AppColors.textPrimary,
+                  fontSize: AppDimensions.getResponsiveFontSize(context, ResponsiveFontSize.xxl),
                 ),
           ),
-          const SizedBox(height: AppDimensions.paddingXS),
+          SizedBox(height: AppDimensions.getResponsivePadding(context, ResponsivePaddingSize.xs)),
           Text(
             'Jelajahi keindahan Indonesia dengan Cultour',
             style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                   color: AppColors.textSecondary,
+                  fontSize: AppDimensions.getResponsiveFontSize(context, ResponsiveFontSize.l),
                 ),
           ),
         ],
@@ -133,9 +141,9 @@ class _HomePageState extends State<HomePage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppDimensions.paddingM,
-                    vertical: AppDimensions.paddingS,
+                  padding: EdgeInsets.symmetric(
+                    horizontal: AppDimensions.getResponsivePadding(context, ResponsivePaddingSize.m),
+                    vertical: AppDimensions.getResponsivePadding(context, ResponsivePaddingSize.s),
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -145,6 +153,7 @@ class _HomePageState extends State<HomePage> {
                         style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                               fontWeight: FontWeight.bold,
                               color: AppColors.textPrimary,
+                              fontSize: AppDimensions.getResponsiveFontSize(context, ResponsiveFontSize.xl),
                             ),
                       ),
                       TextButton(
@@ -161,6 +170,7 @@ class _HomePageState extends State<HomePage> {
                           style: TextStyle(
                             color: AppColors.primary,
                             fontWeight: FontWeight.w600,
+                            fontSize: AppDimensions.getResponsiveFontSize(context, ResponsiveFontSize.m),
                           ),
                         ),
                       ),
@@ -169,13 +179,15 @@ class _HomePageState extends State<HomePage> {
                 ),
                 Expanded(
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: AppDimensions.paddingM),
+                    padding: EdgeInsets.symmetric(
+                      horizontal: AppDimensions.getResponsivePadding(context, ResponsivePaddingSize.m),
+                    ),
                     child: GridView.builder(
-                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 2,
-                        crossAxisSpacing: AppDimensions.paddingM,
-                        mainAxisSpacing: AppDimensions.paddingM,
-                        childAspectRatio: 0.85,
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: context.responsiveCrossAxisCount(mobile: 2, tablet: 3, desktop: 4),
+                        crossAxisSpacing: AppDimensions.getResponsivePadding(context, ResponsivePaddingSize.m),
+                        mainAxisSpacing: AppDimensions.getResponsivePadding(context, ResponsivePaddingSize.m),
+                        childAspectRatio: context.isMobile ? 0.85 : (context.isTablet ? 0.9 : 1.0),
                       ),
                       itemCount: state.attractions.length,
                       itemBuilder: (context, index) {
@@ -206,66 +218,81 @@ class _HomePageState extends State<HomePage> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => Container(
-        height: MediaQuery.of(context).size.height * 0.7,
-        decoration: const BoxDecoration(
+        height: ResponsiveUtils.getModalHeight(context),
+        decoration: BoxDecoration(
           color: AppColors.background,
           borderRadius: BorderRadius.only(
-            topLeft: Radius.circular(AppDimensions.radiusL),
-            topRight: Radius.circular(AppDimensions.radiusL),
+            topLeft: Radius.circular(
+              AppDimensions.getResponsiveBorderRadius(context, ResponsiveRadiusSize.l),
+            ),
+            topRight: Radius.circular(
+              AppDimensions.getResponsiveBorderRadius(context, ResponsiveRadiusSize.l),
+            ),
           ),
         ),
         child: Padding(
-          padding: const EdgeInsets.all(AppDimensions.paddingM),
+          padding: EdgeInsets.all(
+            AppDimensions.getResponsivePadding(context, ResponsivePaddingSize.m),
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
-                width: 40,
-                height: 4,
+                width: ResponsiveUtils.getResponsiveWidth(context, mobile: 40, tablet: 50, desktop: 60),
+                height: ResponsiveUtils.getResponsiveHeight(context, mobile: 4, tablet: 5, desktop: 6),
                 decoration: BoxDecoration(
                   color: AppColors.border,
-                  borderRadius: BorderRadius.circular(2),
+                  borderRadius: BorderRadius.circular(
+                    AppDimensions.getResponsiveBorderRadius(context, ResponsiveRadiusSize.s) / 4,
+                  ),
                 ),
                 margin: EdgeInsets.only(
-                  left: MediaQuery.of(context).size.width / 2 - 20,
-                  bottom: AppDimensions.paddingM,
+                  left: MediaQuery.of(context).size.width / 2 - 
+                      ResponsiveUtils.getResponsiveWidth(context, mobile: 20, tablet: 25, desktop: 30),
+                  bottom: AppDimensions.getResponsivePadding(context, ResponsivePaddingSize.m),
                 ),
               ),
               Text(
                 attraction.name,
-                style: Theme.of(context).textTheme.displaySmall,
+                style: Theme.of(context).textTheme.displaySmall?.copyWith(
+                  fontSize: AppDimensions.getResponsiveFontSize(context, ResponsiveFontSize.xl),
+                ),
               ),
-              const SizedBox(height: AppDimensions.paddingS),
+              SizedBox(height: AppDimensions.getResponsivePadding(context, ResponsivePaddingSize.s)),
               Row(
                 children: [
-                  const Icon(
+                  Icon(
                     Icons.star,
                     color: Colors.amber,
-                    size: AppDimensions.iconS,
+                    size: AppDimensions.getResponsiveIconSize(context, ResponsiveIconSize.s),
                   ),
-                  const SizedBox(width: AppDimensions.paddingXS),
+                  SizedBox(width: AppDimensions.getResponsivePadding(context, ResponsivePaddingSize.xs)),
                   Text(
                     attraction.rating.toString(),
-                    style: Theme.of(context).textTheme.bodyMedium,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      fontSize: AppDimensions.getResponsiveFontSize(context, ResponsiveFontSize.m),
+                    ),
                   ),
                 ],
               ),
-              const SizedBox(height: AppDimensions.paddingM),
+              SizedBox(height: AppDimensions.getResponsivePadding(context, ResponsivePaddingSize.m)),
               Text(
                 attraction.description,
-                style: Theme.of(context).textTheme.bodyMedium,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  fontSize: AppDimensions.getResponsiveFontSize(context, ResponsiveFontSize.m),
+                ),
               ),
-              const SizedBox(height: AppDimensions.paddingM),
+              SizedBox(height: AppDimensions.getResponsivePadding(context, ResponsivePaddingSize.m)),
               Wrap(
-                spacing: AppDimensions.paddingS,
+                spacing: AppDimensions.getResponsivePadding(context, ResponsivePaddingSize.s),
                 children: attraction.categories
                     .map(
                       (category) => Chip(
                         label: Text(category),
                         backgroundColor: AppColors.primaryLight,
-                        labelStyle: const TextStyle(
+                        labelStyle: TextStyle(
                           color: AppColors.primary,
-                          fontSize: AppDimensions.fontS,
+                          fontSize: AppDimensions.getResponsiveFontSize(context, ResponsiveFontSize.s),
                         ),
                       ),
                     )

@@ -171,10 +171,22 @@ class _LiveTranslationWidgetState extends State<LiveTranslationWidget> {
       },
       child: Container(
           decoration: BoxDecoration(
-            color: AppColors.backgroundLight,
+            color: Colors.grey.shade50,
             borderRadius: BorderRadius.circular(AppDimensions.radiusXL),
+            border: Border.all(
+              color: Colors.grey.shade200,
+              width: 1,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.08),
+                blurRadius: 12,
+                offset: const Offset(0, 3),
+                spreadRadius: 0,
+              ),
+            ],
           ),
-          padding: const EdgeInsets.all(AppDimensions.paddingM),
+          padding: const EdgeInsets.all(AppDimensions.paddingL),
           child: Column(
             children: [
               // Language Selection Row

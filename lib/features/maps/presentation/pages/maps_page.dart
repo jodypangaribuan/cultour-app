@@ -1,10 +1,22 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:geocoding/geocoding.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/constants/colors.dart';
 import '../../../../core/constants/dimensions.dart';
+import '../../../../core/utils/responsive_utils.dart';
+import '../../../../core/di/injection_container.dart';
+import '../../domain/entities/place.dart';
+import '../../domain/entities/route_info.dart';
+import '../bloc/maps_bloc.dart';
+import '../bloc/maps_event.dart';
+import '../bloc/maps_state.dart';
+import '../widgets/place_search_widget.dart';
+import '../widgets/place_info_window.dart';
+import '../widgets/directions_panel.dart';
 
 class MapsPage extends StatefulWidget {
   const MapsPage({super.key});
@@ -15,21 +27,24 @@ class MapsPage extends StatefulWidget {
 
 class _MapsPageState extends State<MapsPage> {
   GoogleMapController? _mapController;
-  bool _isMapReady = false;
   final TextEditingController _searchController = TextEditingController();
-  final List<String> _filterTags = ['Restaurants', 'Museums', 'Parks'];
+  
   LatLng? _currentPosition;
-  LatLng? _searchedPosition;
   final Set<Marker> _markers = {};
-
+  final Set<Polyline> _polylines = {};
+  
+  Place? _selectedPlace;
+  RouteInfo? _routeInfo;
+  bool _showDirections = false;
+  
   static const LatLng _defaultJakarta = LatLng(-6.200000, 106.816666);
-  bool _mapError = false;
-  String _mapErrorMsg = '';
+  
+
 
   @override
   void initState() {
     super.initState();
-    _determinePosition();
+    _getCurrentLocation();
   }
 
   @override
@@ -38,39 +53,41 @@ class _MapsPageState extends State<MapsPage> {
     super.dispose();
   }
 
-  Future<void> _determinePosition() async {
-    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) {
-      await Geolocator.openLocationSettings();
-      return;
-    }
-
-    LocationPermission permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-    }
-
-    if (permission == LocationPermission.denied || permission == LocationPermission.deniedForever) {
-      _setDefaultLocation();
-      return;
-    }
-
+  Future<void> _getCurrentLocation() async {
     try {
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        await Geolocator.openLocationSettings();
+        return;
+      }
+
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+
+      if (permission == LocationPermission.denied || 
+          permission == LocationPermission.deniedForever) {
+        _setDefaultLocation();
+        return;
+      }
+
       Position position = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high,
       );
-      LatLng newPosition = LatLng(position.latitude, position.longitude);
-
+      
       setState(() {
-        _currentPosition = newPosition;
+        _currentPosition = LatLng(position.latitude, position.longitude);
         _updateCurrentLocationMarker();
       });
 
-      if (_isMapReady && _mapController != null) {
-        _mapController!.animateCamera(CameraUpdate.newLatLng(newPosition));
+      if (_mapController != null) {
+        _mapController!.animateCamera(
+          CameraUpdate.newLatLng(_currentPosition!),
+        );
       }
     } catch (e) {
-      print('Error getting position: $e');
+      print('Error getting location: $e');
       _setDefaultLocation();
     }
   }
@@ -89,291 +106,299 @@ class _MapsPageState extends State<MapsPage> {
         Marker(
           markerId: const MarkerId('currentLocation'),
           position: _currentPosition!,
-          infoWindow: const InfoWindow(title: 'Lokasi Anda'),
+          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueBlue),
+          infoWindow: const InfoWindow(title: 'Your Location'),
         ),
       );
     }
   }
 
-  Future<void> _searchLocation(String query) async {
-    if (query.isEmpty) return;
-    try {
-      List<Location> locations = await locationFromAddress(query);
-      if (locations.isNotEmpty) {
-        final LatLng searchedLatLng = LatLng(locations.first.latitude, locations.first.longitude);
-        setState(() {
-          _searchedPosition = searchedLatLng;
-          _markers.removeWhere((m) => m.markerId.value == 'searchedLocation');
-          _markers.add(
-            Marker(
-              markerId: const MarkerId('searchedLocation'),
-              position: searchedLatLng,
-              infoWindow: InfoWindow(title: query),
-            ),
-          );
-        });
-        if (_isMapReady && _mapController != null) {
-          _mapController!.animateCamera(
-            CameraUpdate.newLatLngZoom(searchedLatLng, 16),
-          );
-        }
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Lokasi "$query" ditemukan!'),
-            backgroundColor: AppColors.primary,
+  void _addPlaceMarker(Place place) {
+    setState(() {
+      _markers.removeWhere((m) => m.markerId.value == 'selectedPlace');
+      _markers.add(
+        Marker(
+          markerId: const MarkerId('selectedPlace'),
+          position: LatLng(place.latitude, place.longitude),
+          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
+          infoWindow: InfoWindow(
+            title: place.name,
+            snippet: place.address,
           ),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Lokasi tidak ditemukan!'),
-            backgroundColor: AppColors.primary,
+          onTap: () {
+            setState(() {
+              _selectedPlace = place;
+            });
+          },
+        ),
+      );
+    });
+  }
+
+  void _addNearbyPlaceMarkers(List<Place> places) {
+    setState(() {
+      // Remove existing nearby markers
+      _markers.removeWhere((m) => m.markerId.value.startsWith('nearby_'));
+      
+      // Add new markers
+      for (int i = 0; i < places.length; i++) {
+        final place = places[i];
+        _markers.add(
+          Marker(
+            markerId: MarkerId('nearby_$i'),
+            position: LatLng(place.latitude, place.longitude),
+            icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
+            infoWindow: InfoWindow(
+              title: place.name,
+              snippet: place.address,
+            ),
+            onTap: () {
+              setState(() {
+                _selectedPlace = place;
+              });
+            },
           ),
         );
       }
-    } catch (e) {
-      print('Error searching location: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Terjadi kesalahan saat mencari lokasi!'),
-          backgroundColor: AppColors.primary,
+    });
+  }
+
+  void _drawRoute(RouteInfo routeInfo) {
+    setState(() {
+      _polylines.clear();
+      _polylines.add(
+        Polyline(
+          polylineId: const PolylineId('route'),
+          points: routeInfo.polylinePoints,
+          color: AppColors.primary,
+          width: 5,
+          patterns: [],
         ),
       );
+      _routeInfo = routeInfo;
+      _showDirections = true;
+    });
+  }
+
+  void _clearRoute() {
+    setState(() {
+      _polylines.clear();
+      _routeInfo = null;
+      _showDirections = false;
+    });
+  }
+
+  void _onPlaceSelected(Place place) {
+    _addPlaceMarker(place);
+    setState(() {
+      _selectedPlace = place;
+    });
+    
+    if (_mapController != null) {
+      _mapController!.animateCamera(
+        CameraUpdate.newLatLngZoom(
+          LatLng(place.latitude, place.longitude),
+          16,
+        ),
+      );
+    }
+  }
+
+  void _getDirections() {
+    if (_selectedPlace != null && _currentPosition != null) {
+      context.read<MapsBloc>().add(
+        GetDirectionsEvent(
+          origin: _currentPosition!,
+          destination: LatLng(_selectedPlace!.latitude, _selectedPlace!.longitude),
+        ),
+      );
+    }
+  }
+
+
+
+  void _startNavigation() async {
+    if (_selectedPlace != null) {
+      final uri = Uri.parse(
+        'https://www.google.com/maps/dir/?api=1&destination=${_selectedPlace!.latitude},${_selectedPlace!.longitude}&travelmode=driving',
+      );
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final LatLng mapCenter = _searchedPosition ?? _currentPosition ?? _defaultJakarta;
-    return Scaffold(
-      body: Stack(
-        children: [
-          // GoogleMap selalu dirender, gunakan posisi default jika belum ada lokasi
-          GoogleMap(
-            key: const ValueKey('map'),
-            initialCameraPosition: CameraPosition(
-              target: mapCenter,
-              zoom: 15,
-            ),
-            onMapCreated: (controller) {
-              try {
-                _mapController = controller;
-                if (!_isMapReady) {
-                  setState(() {
-                    _isMapReady = true;
-                    _mapError = false;
-                    _mapErrorMsg = '';
-                  });
-                }
-                // Jika hasil pencarian sudah ada, langsung pindah kamera ke sana
-                if (_searchedPosition != null) {
-                  Future.delayed(const Duration(milliseconds: 300), () {
-                    _mapController?.animateCamera(
-                      CameraUpdate.newLatLngZoom(_searchedPosition!, 16),
-                    );
-                  });
-                }
-              } catch (e) {
-                setState(() {
-                  _mapError = true;
-                  _mapErrorMsg = 'Gagal memuat Google Maps: ${e.toString()}';
-                });
+    return BlocProvider(
+      create: (context) => sl<MapsBloc>(),
+      child: Scaffold(
+        body: BlocListener<MapsBloc, MapsState>(
+          listener: (context, state) {
+            if (state is MapsLoaded) {
+              if (state.selectedPlace != null) {
+                _onPlaceSelected(state.selectedPlace!);
               }
-            },
-            myLocationEnabled: true,
-            myLocationButtonEnabled: false,
-            zoomControlsEnabled: false,
-            markers: _markers,
-            // Tambahkan ini untuk debug jika map tidak muncul
-            onCameraMoveStarted: () {
-              print('Camera move started');
-            },
-            onTap: (pos) {
-              print('Map tapped at: $pos');
-            },
-          ),
-          // Overlay spinner hanya jika _currentPosition masih null (loading lokasi)
-          if (_currentPosition == null)
-            Positioned.fill(
-              child: Container(
-                color: Colors.white,
-                child: Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      CircularProgressIndicator(
-                        color: AppColors.primary,
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'Mengambil lokasi...',
-                        style: TextStyle(color: AppColors.primary),
-                      ),
-                    ],
+              if (state.nearbyPlaces.isNotEmpty) {
+                _addNearbyPlaceMarkers(state.nearbyPlaces);
+              }
+              if (state.routeInfo != null) {
+                _drawRoute(state.routeInfo!);
+              }
+              if (state.errorMessage != null) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(state.errorMessage!),
+                    backgroundColor: Colors.red,
                   ),
+                );
+              }
+            } else if (state is MapsError) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(state.message),
+                  backgroundColor: Colors.red,
                 ),
-              ),
-            ),
-          // Overlay error jika map gagal
-          if (_mapError)
-            Positioned.fill(
-              child: Container(
-                color: Colors.white.withOpacity(0.85),
-                child: Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.error_outline, color: Colors.red, size: 48),
-                      const SizedBox(height: 16),
-                      Text(
-                        _mapErrorMsg.isNotEmpty
-                            ? _mapErrorMsg
-                            : 'Gagal memuat Google Maps.\nCek API Key dan permission lokasi.',
-                        style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          SafeArea(
-            child: Column(
-              children: [
-                _buildTopSection(),
-                const Spacer(),
-                _buildBottomSection(),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTopSection() {
-    return Padding(
-      padding: const EdgeInsets.all(AppDimensions.paddingM),
-      child: Row(
-        children: [
-          Expanded(
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(AppDimensions.radiusL),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Row(
-                children: [
-                  const Padding(
-                    padding: EdgeInsets.only(left: AppDimensions.paddingM),
-                    child: Icon(Icons.search, color: Colors.grey, size: 20),
-                  ),
-                  Expanded(
-                    child: TextField(
-                      controller: _searchController,
-                      decoration: const InputDecoration(
-                        hintText: 'Search places...',
-                        border: InputBorder.none,
-                      ),
-                      onSubmitted: (value) {
-                        _searchLocation(value);
-                      },
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(width: AppDimensions.paddingM),
-          _circleButton(Icons.menu, () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: const Text('Menu akan segera hadir!'),
-                backgroundColor: AppColors.primary,
-              ),
-            );
-          }),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildBottomSection() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: AppDimensions.paddingM),
-      child: Row(
-        children: [
-          Expanded(
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: _filterTags
-                    .map((tag) => Container(
-                          margin: const EdgeInsets.only(
-                              right: AppDimensions.paddingS),
-                          child: FilterChip(
-                            label: Text(tag),
-                            onSelected: (_) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text('$tag filter coming soon!'),
-                                  backgroundColor: AppColors.primary,
-                                ),
-                              );
-                            },
-                          ),
-                        ))
-                    .toList(),
-              ),
-            ),
-          ),
-          const SizedBox(width: AppDimensions.paddingM),
-          Column(
+              );
+            }
+          },
+          child: Stack(
             children: [
-              _circleButton(Icons.add, () {
-                if (_isMapReady) {
-                  _mapController?.animateCamera(CameraUpdate.zoomIn());
-                }
-              }),
-              const SizedBox(height: 8),
-              _circleButton(Icons.remove, () {
-                if (_isMapReady) {
-                  _mapController?.animateCamera(CameraUpdate.zoomOut());
-                }
-              }),
-              const SizedBox(height: 8),
-              _circleButton(Icons.my_location, () {
-                if (_isMapReady && _currentPosition != null) {
-                  _mapController?.animateCamera(
-                    CameraUpdate.newLatLng(_currentPosition!),
-                  );
+              // Google Map
+              GoogleMap(
+                initialCameraPosition: CameraPosition(
+                  target: _currentPosition ?? _defaultJakarta,
+                  zoom: 15,
+                ),
+                onMapCreated: (controller) {
+                  _mapController = controller;
+                },
+                markers: _markers,
+                polylines: _polylines,
+                myLocationEnabled: true,
+                myLocationButtonEnabled: false,
+                zoomControlsEnabled: false,
+                onTap: (_) {
                   setState(() {
-                    _searchedPosition = null;
+                    _selectedPlace = null;
                   });
-                }
-              }),
+                },
+              ),
+
+              // Search overlay
+              SafeArea(
+                child: Column(
+                  children: [
+                    // Search bar
+                    Padding(
+                      padding: EdgeInsets.all(
+                        AppDimensions.getResponsivePadding(context, ResponsivePaddingSize.m),
+                      ),
+                      child: PlaceSearchWidget(
+                        controller: _searchController,
+                        onClear: () {
+                          setState(() {
+                            _selectedPlace = null;
+                          });
+                          _clearRoute();
+                        },
+                        onPlaceSelected: (prediction) {
+                          // The bloc will handle getting place details
+                        },
+                      ),
+                    ),
+
+
+
+                    const Spacer(),
+
+                    // Place info window
+                    if (_selectedPlace != null && !_showDirections)
+                      PlaceInfoWindow(
+                        place: _selectedPlace!,
+                        onGetDirections: _getDirections,
+                        onClose: () {
+                          setState(() {
+                            _selectedPlace = null;
+                          });
+                        },
+                      ),
+
+                    // Directions panel
+                    if (_showDirections && _routeInfo != null)
+                      DirectionsPanel(
+                        routeInfo: _routeInfo!,
+                        onClose: () {
+                          _clearRoute();
+                          context.read<MapsBloc>().add(const ClearDirections());
+                        },
+                        onStartNavigation: _startNavigation,
+                      ),
+
+                    // Control buttons
+                    Padding(
+                      padding: EdgeInsets.all(
+                        AppDimensions.getResponsivePadding(context, ResponsivePaddingSize.m),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          Column(
+                            children: [
+                              _buildControlButton(
+                                Icons.add,
+                                () {
+                                  _mapController?.animateCamera(CameraUpdate.zoomIn());
+                                },
+                              ),
+                              SizedBox(height: AppDimensions.getResponsivePadding(context, ResponsivePaddingSize.s)),
+                              _buildControlButton(
+                                Icons.remove,
+                                () {
+                                  _mapController?.animateCamera(CameraUpdate.zoomOut());
+                                },
+                              ),
+                              SizedBox(height: AppDimensions.getResponsivePadding(context, ResponsivePaddingSize.s)),
+                              _buildControlButton(
+                                Icons.my_location,
+                                () {
+                                  if (_currentPosition != null) {
+                                    _mapController?.animateCamera(
+                                      CameraUpdate.newLatLng(_currentPosition!),
+                                    );
+                                  }
+                                },
+                              ),
+                              SizedBox(height: AppDimensions.getResponsivePadding(context, ResponsivePaddingSize.s)),
+                              _buildControlButton(
+                                Icons.layers,
+                                () {
+                                  _showMapTypeDialog();
+                                },
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ],
           ),
-        ],
+        ),
       ),
     );
   }
 
-  Widget _circleButton(IconData icon, VoidCallback onPressed) {
+  Widget _buildControlButton(IconData icon, VoidCallback onPressed) {
+    final buttonSize = ResponsiveUtils.getControlButtonSize(context);
     return Container(
-      width: 40,
-      height: 40,
-      margin: const EdgeInsets.only(bottom: 4),
+      width: buttonSize,
+      height: buttonSize,
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(AppDimensions.radiusL),
+        borderRadius: BorderRadius.circular(buttonSize / 2),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.1),
@@ -383,10 +408,87 @@ class _MapsPageState extends State<MapsPage> {
         ],
       ),
       child: IconButton(
-        icon: Icon(icon, size: 20),
-        padding: EdgeInsets.zero,
+        icon: Icon(
+          icon, 
+          size: AppDimensions.getResponsiveIconSize(context, ResponsiveIconSize.s),
+        ),
         onPressed: onPressed,
+        padding: EdgeInsets.zero,
       ),
+    );
+  }
+
+  void _showMapTypeDialog() {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) {
+        return Container(
+          padding: EdgeInsets.all(
+            AppDimensions.getResponsivePadding(context, ResponsivePaddingSize.m),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Map Type',
+                style: TextStyle(
+                  fontSize: AppDimensions.getResponsiveFontSize(context, ResponsiveFontSize.xl),
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              SizedBox(height: AppDimensions.getResponsivePadding(context, ResponsivePaddingSize.m)),
+              ListTile(
+                leading: Icon(
+                  Icons.map,
+                  size: AppDimensions.getResponsiveIconSize(context, ResponsiveIconSize.m),
+                ),
+                title: Text(
+                  'Normal',
+                  style: TextStyle(
+                    fontSize: AppDimensions.getResponsiveFontSize(context, ResponsiveFontSize.l),
+                  ),
+                ),
+                onTap: () {
+                  // Change map type to normal
+                  Navigator.pop(context);
+                },
+              ),
+              ListTile(
+                leading: Icon(
+                  Icons.satellite,
+                  size: AppDimensions.getResponsiveIconSize(context, ResponsiveIconSize.m),
+                ),
+                title: Text(
+                  'Satellite',
+                  style: TextStyle(
+                    fontSize: AppDimensions.getResponsiveFontSize(context, ResponsiveFontSize.l),
+                  ),
+                ),
+                onTap: () {
+                  // Change map type to satellite
+                  Navigator.pop(context);
+                },
+              ),
+              ListTile(
+                leading: Icon(
+                  Icons.terrain,
+                  size: AppDimensions.getResponsiveIconSize(context, ResponsiveIconSize.m),
+                ),
+                title: Text(
+                  'Terrain',
+                  style: TextStyle(
+                    fontSize: AppDimensions.getResponsiveFontSize(context, ResponsiveFontSize.l),
+                  ),
+                ),
+                onTap: () {
+                  // Change map type to terrain
+                  Navigator.pop(context);
+                },
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

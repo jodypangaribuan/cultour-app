@@ -5,6 +5,12 @@ class ApiConfig {
     defaultValue: 'AIzaSyBpB-I4QZ2tNWltIzGQsRVEVbJa0EyKO6A', // Replace with your actual API key
   );
 
+  // Google Maps API Configuration
+  static const String googleMapsApiKey = String.fromEnvironment(
+    'GOOGLE_MAPS_API_KEY',
+    defaultValue: 'AIzaSyBpB-I4QZ2tNWltIzGQsRVEVbJa0EyKO6A', // Replace with your actual API key
+  );
+
   // You can also store other API configurations here
   static const String baseUrl = 'https://translation.googleapis.com';
   
