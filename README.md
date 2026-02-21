@@ -3,6 +3,10 @@
   <h1>Cultour</h1>
 </div>
 
+<p align="center">
+  <strong>Smart & Disability-Friendly Exploration of Batak Culture in the Lake Toba Ecosystem, North Sumatra.</strong>
+</p>
+
 <div align="center">
   <img alt="Version" src="https://img.shields.io/badge/version-1.0.0--beta-blue.svg?cacheSeconds=2592000" />
   <img alt="Status" src="https://img.shields.io/badge/Status-Completed-success?style=flat-square" />
@@ -27,10 +31,6 @@
 </div>
 
 <br />
-
-<p align="center">
-  <strong>Smart & Disability-Friendly Exploration of Batak Culture in the Lake Toba Ecosystem, North Sumatra.</strong>
-</p>
 
 ## Executive Summary
 
