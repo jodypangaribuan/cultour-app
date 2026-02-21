@@ -4,20 +4,20 @@
 </div>
 
 <div align="center">
-  <img alt="Version" src="https://img-shields.io/badge/version-1.0.0--beta-blue.svg?cacheSeconds=2592000" />
-  <img alt="Status" src="https://img-shields.io/badge/Status-Active%20Development-yellow?style=flat-square" />
-  <img alt="Platform" src="https://img-shields.io/badge/Platform-Mobile%20(Android%20%26%20iOS)-lightgrey?style=flat-square" />
+  <img alt="Version" src="https://img.shields.io/badge/version-1.0.0--beta-blue.svg?cacheSeconds=2592000" />
+  <img alt="Status" src="https://img.shields.io/badge/Status-Active%20Development-yellow?style=flat-square" />
+  <img alt="Platform" src="https://img.shields.io/badge/Platform-Mobile%20(Android%20%26%20iOS)-lightgrey?style=flat-square" />
 </div>
 
 <br />
 
 <div align="center">
-  <img alt="Flutter" src="https://img-shields.io/badge/Flutter%203-02569B?style=flat-square&logo=flutter&logoColor=white" />
-  <img alt="Firebase" src="https://img-shields.io/badge/Firebase-FFCA28?style=flat-square&logo=firebase&logoColor=black" />
-  <img alt="TensorFlow" src="https://img-shields.io/badge/TensorFlow-FF6F00?style=flat-square&logo=tensorflow&logoColor=white" />
-  <img alt="OpenAI" src="https://img-shields.io/badge/OpenAI-412991?style=flat-square&logo=openai&logoColor=white" />
-  <img alt="Google Maps API" src="https://img-shields.io/badge/Google%20Maps-4285F4?style=flat-square&logo=googlemaps&logoColor=white" />
-  <img alt="Polygon Blockchain" src="https://img-shields.io/badge/Polygon-8247E5?style=flat-square&logo=polygon&logoColor=white" />
+  <img alt="Flutter" src="https://img.shields.io/badge/Flutter%203-02569B?style=flat-square&logo=flutter&logoColor=white" />
+  <img alt="Firebase" src="https://img.shields.io/badge/Firebase-FFCA28?style=flat-square&logo=firebase&logoColor=black" />
+  <img alt="TensorFlow" src="https://img.shields.io/badge/TensorFlow-FF6F00?style=flat-square&logo=tensorflow&logoColor=white" />
+  <img alt="OpenAI" src="https://img.shields.io/badge/OpenAI-412991?style=flat-square&logo=openai&logoColor=white" />
+  <img alt="Google Maps API" src="https://img.shields.io/badge/Google%20Maps-4285F4?style=flat-square&logo=googlemaps&logoColor=white" />
+  <img alt="Polygon Blockchain" src="https://img.shields.io/badge/Polygon-8247E5?style=flat-square&logo=polygon&logoColor=white" />
 </div>
 
 <br />
