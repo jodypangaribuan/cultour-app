@@ -43,9 +43,6 @@ post_install do |installer|
     # Fix for iOS 16+ compatibility
     target.build_configurations.each do |config|
       config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '16.0'
-      
-      # Fix for arm64 architecture issues
-      config.build_settings['EXCLUDED_ARCHS[sdk=iphonesimulator*]'] = 'arm64'
     end
   end
 end
