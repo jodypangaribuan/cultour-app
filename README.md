@@ -5,7 +5,7 @@
 
 <div align="center">
   <img alt="Version" src="https://img.shields.io/badge/version-1.0.0--beta-blue.svg?cacheSeconds=2592000" />
-  <img alt="Status" src="https://img.shields.io/badge/Status-Active%20Development-yellow?style=flat-square" />
+  <img alt="Status" src="https://img.shields.io/badge/Status-Completed-success?style=flat-square" />
   <img alt="Platform" src="https://img.shields.io/badge/Platform-Mobile%20(Android%20%26%20iOS)-lightgrey?style=flat-square" />
 </div>
 

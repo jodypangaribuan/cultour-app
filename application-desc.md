@@ -7,7 +7,7 @@
 1.0.0 (Beta)
 
 **Status Proyek**  
-Dalam Pengembangan Aktif (Tahap Finalisasi, Kompetisi GEMASTIK XVIII – 2025)
+Selesai (Kompetisi GEMASTIK XVIII – 2025)
 
 **Tanggal Pembaruan Terakhir**  
 21 Februari 2026
