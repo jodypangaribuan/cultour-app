@@ -22,6 +22,12 @@
 
 <br />
 
+<div align="center">
+  <img src="assets/images/453_1x_shots_so.png" alt="Cultour Application Mockup" width="100%" />
+</div>
+
+<br />
+
 <p align="center">
   <strong>Smart & Disability-Friendly Exploration of Batak Culture in the Lake Toba Ecosystem, North Sumatra.</strong>
 </p>
